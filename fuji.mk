@@ -163,10 +163,6 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     device/sony/fuji-common/rootdir/system/etc/thermald-semc.conf:system/etc/thermald-semc.conf
 
-# Xperia Settings (sony-common)
-PRODUCT_PACKAGES += \
-    XperiaSettings
-
 # Extract recovery ramdisks (sony-common)
 PRODUCT_PACKAGES += \
     extract_elf_ramdisk
