@@ -1,0 +1,65 @@
+From 62955724f664f068ecfa4f705594a4d64e65dd33 Mon Sep 17 00:00:00 2001
+From: Philippe Larrieux <philippe.larrieux@gmail.com>
+Date: Mon, 1 Jul 2013 15:46:50 +0200
+Subject: [PATCH] EAP-SIM: add android.uid.smartcard user
+
+Change-Id: Ia26dce782bc66fa4a09cdfe030f95bbd8daf5834
+---
+ api/current.txt                                                | 1 +
+ core/java/android/os/Process.java                              | 5 +++++
+ services/java/com/android/server/pm/PackageManagerService.java | 4 ++++
+ 3 files changed, 10 insertions(+)
+
+diff --git a/api/current.txt b/api/current.txt
+index 0ff0fbc..057c924 100644
+--- a/api/current.txt
++++ b/api/current.txt
+@@ -16435,6 +16435,7 @@ package android.os {
+     field public static final int SIGNAL_KILL = 9; // 0x9
+     field public static final int SIGNAL_QUIT = 3; // 0x3
+     field public static final int SIGNAL_USR1 = 10; // 0xa
++    field public static final int SMARTCARD_UID = 1029; // 0x405
+     field public static final int SYSTEM_UID = 1000; // 0x3e8
+     field public static final int THREAD_PRIORITY_AUDIO = -16; // 0xfffffff0
+     field public static final int THREAD_PRIORITY_BACKGROUND = 10; // 0xa
+diff --git a/core/java/android/os/Process.java b/core/java/android/os/Process.java
+index 3cb361f..756ce25 100644
+--- a/core/java/android/os/Process.java
++++ b/core/java/android/os/Process.java
+@@ -104,6 +104,11 @@ public class Process {
+     public static final int SDCARD_RW_GID = 1015;
+ 
+     /**
++     * Defines the UID/GID for the SmartCard service process.
++     */
++    public static final int SMARTCARD_UID = 1029;
++
++    /**
+      * Defines the UID/GID for the group that controls VPN services.
+      * @hide
+      */
+diff --git a/services/java/com/android/server/pm/PackageManagerService.java b/services/java/com/android/server/pm/PackageManagerService.java
+index 41e68f8..3a06ff0 100644
+--- a/services/java/com/android/server/pm/PackageManagerService.java
++++ b/services/java/com/android/server/pm/PackageManagerService.java
+@@ -196,6 +196,7 @@ public class PackageManagerService extends IPackageManager.Stub {
+     private static final int LOG_UID = Process.LOG_UID;
+     private static final int NFC_UID = Process.NFC_UID;
+     private static final int BLUETOOTH_UID = Process.BLUETOOTH_UID;
++    private static final int SMARTCARD_UID = Process.SMARTCARD_UID;
+ 
+     private static final boolean GET_CERTIFICATES = true;
+ 
+@@ -997,6 +998,9 @@ public class PackageManagerService extends IPackageManager.Stub {
+         mSettings.addSharedUserLPw("com.tmobile.thememanager", THEME_MAMANER_GUID, ApplicationInfo.FLAG_SYSTEM);
+         mSettings.addSharedUserLPw("android.uid.nfc", NFC_UID, ApplicationInfo.FLAG_SYSTEM);
+         mSettings.addSharedUserLPw("android.uid.bluetooth", BLUETOOTH_UID, ApplicationInfo.FLAG_SYSTEM);
++	// PL: Sony is using android.uid.smartcard
++        // mSettings.addSharedUserLPw("org.simalliance.uid.openmobileapi", SMARTCARD_UID, ApplicationInfo.FLAG_SYSTEM);
++        mSettings.addSharedUserLPw("android.uid.smartcard", SMARTCARD_UID, ApplicationInfo.FLAG_SYSTEM);
+ 
+         String separateProcesses = SystemProperties.get("debug.separate_processes");
+         if (separateProcesses != null && separateProcesses.length() > 0) {
+-- 
+1.8.1.2
+

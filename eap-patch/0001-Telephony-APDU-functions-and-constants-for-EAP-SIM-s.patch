@@ -1,0 +1,109 @@
+From 32a317849ebd9e046403c7e055c464bbb3aad17b Mon Sep 17 00:00:00 2001
+From: Philippe Larrieux <philippe.larrieux@gmail.com>
+Date: Mon, 1 Jul 2013 12:16:24 +0200
+Subject: [PATCH] Telephony: APDU functions and constants for EAP-SIM support
+
+Change-Id: Id3fc48503915fcd5c57f1fafdb6a5b3a0c9a2b49
+
+Conflicts:
+	telephony/java/com/android/internal/telephony/ITelephony.aidl
+---
+ .../com/android/internal/telephony/ITelephony.aidl | 37 +++++++++++++++++++++-
+ .../android/internal/telephony/RILConstants.java   | 28 ++++++++++++++++
+ 2 files changed, 64 insertions(+), 1 deletion(-)
+
+diff --git a/telephony/java/com/android/internal/telephony/ITelephony.aidl b/telephony/java/com/android/internal/telephony/ITelephony.aidl
+index 9d1cc1d..f71cdf5 100644
+--- a/telephony/java/com/android/internal/telephony/ITelephony.aidl
++++ b/telephony/java/com/android/internal/telephony/ITelephony.aidl
+@@ -292,5 +292,40 @@ interface ITelephony {
+     List<CellInfo> getAllCellInfo();
+ 
+     int getLteOnGsmMode();
+-}
+ 
++    /**
++     * Returns the response APDU for a command APDU sent to a logical channel
++     */
++    String transmitIccLogicalChannel(int cla, int command, int channel,
++            int p1, int p2, int p3, String data);
++
++    /**
++     * Returns the response APDU for a command APDU sent to the basic channel
++     */
++    String transmitIccBasicChannel(int cla, int command,
++            int p1, int p2, int p3, String data);
++
++    /**
++     * Returns the channel id of the logical channel,
++     * Returns 0 on error.
++     */
++    int openIccLogicalChannel(String AID);
++
++    /**
++     * Return true if logical channel was closed successfully
++     */
++    boolean closeIccLogicalChannel(int channel);
++
++    /**
++     * Returns the error code of the last error occured.
++     * Currently only used for openIccLogicalChannel
++     */
++    int getLastError();
++
++    /**
++     * Returns the response APDU for a command APDU sent through SIM_IO
++     */
++    byte[] transmitIccSimIO(int fileID, int command,
++                                      int p1, int p2, int p3, String filePath);}
++
++}
+diff --git a/telephony/java/com/android/internal/telephony/RILConstants.java b/telephony/java/com/android/internal/telephony/RILConstants.java
+index feac45b..05de8c7 100644
+--- a/telephony/java/com/android/internal/telephony/RILConstants.java
++++ b/telephony/java/com/android/internal/telephony/RILConstants.java
+@@ -55,6 +55,10 @@ public interface RILConstants {
+     int ILLEGAL_SIM_OR_ME = 15;               /* network selection failure due
+                                                  to wrong SIM/ME and no
+                                                  retries needed */
++    int MISSING_RESOURCE = 16;
++    int NO_SUCH_ELEMENT = 17;
++    int INVALID_PARAMETER = 18;
++
+ 
+     /* NETWORK_MODE_* See ril.h RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE */
+     int NETWORK_MODE_WCDMA_PREF     = 0; /* GSM/WCDMA (WCDMA preferred) */
+@@ -260,6 +264,30 @@ cat include/telephony/ril.h | \
+     int RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU = 106;
+     int RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS = 107;
+     int RIL_REQUEST_VOICE_RADIO_TECH = 108;
++
++    // QCOM extensions
++    int RIL_REQUEST_IMS_REGISTRATION_STATE = 109;
++    int RIL_REQUEST_IMS_SEND_SMS = 110;
++    int RIL_REQUEST_GET_DATA_CALL_PROFILE = 111;
++    int RIL_REQUEST_SETUP_QOS = 112;
++    int RIL_REQUEST_RELEASE_QOS = 113;
++    int RIL_REQUEST_GET_QOS_STATUS = 114;
++    int RIL_REQUEST_MODIFY_QOS = 115;
++    int RIL_REQUEST_SUSPEND_QOS = 116;
++    int RIL_REQUEST_RESUME_QOS = 117;
++    int RIL_REQUEST_SET_UICC_SUBSCRIPTION = 118;
++    int RIL_REQUEST_SET_DATA_SUBSCRIPTION = 119;
++    int RIL_REQUEST_GET_UICC_SUBSCRIPTION = 120;
++    int RIL_REQUEST_GET_DATA_SUBSCRIPTION = 121;
++    int RIL_REQUEST_SET_SUBSCRIPTION_MODE = 122;
++    int RIL_REQUEST_SET_TRANSMIT_POWER = 123;
++
++    // EAP SIM
++    int RIL_REQUEST_SIM_TRANSMIT_BASIC = 124;
++    int RIL_REQUEST_SIM_OPEN_CHANNEL = 125;
++    int RIL_REQUEST_SIM_CLOSE_CHANNEL = 126;
++    int RIL_REQUEST_SIM_TRANSMIT_CHANNEL = 127;
++
+     int RIL_UNSOL_RESPONSE_BASE = 1000;
+     int RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED = 1000;
+     int RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED = 1001;
+-- 
+1.8.1.2
+

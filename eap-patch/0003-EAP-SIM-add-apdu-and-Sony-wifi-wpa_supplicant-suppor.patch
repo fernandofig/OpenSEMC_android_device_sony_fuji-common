@@ -1,0 +1,660 @@
+From 27e03c310fc95cd044614b5d2d62eeb95896a4ab Mon Sep 17 00:00:00 2001
+From: Philippe Larrieux <philippe.larrieux@gmail.com>
+Date: Fri, 5 Jul 2013 12:31:42 +0200
+Subject: [PATCH] EAP-SIM: add apdu and Sony wifi wpa_supplicant support
+
+Change-Id: Ib1d3723e93003cbc79d458f0e8a4deb7f4f21c0b
+
+Conflicts:
+	Android.mk
+---
+ Android.mk                                         |   2 +-
+ apdu-stubs/Android.mk                              |  35 +++
+ .../src/java/android/net/apdu/ApduService.java     |  12 ++
+ apdu/Android.mk                                    |  14 ++
+ apdu/apdu.jar                                      | Bin 0 -> 5343 bytes
+ wifi/java/android/net/wifi/WifiConfigStore.java    |  12 ++
+ wifi/java/android/net/wifi/WifiConfiguration.java  |   4 +-
+ wifi/java/android/net/wifi/WifiMonitor.java        |   6 +-
+ wifi/java/android/net/wifi/WifiNative.java         |  14 +-
+ wifi/java/android/net/wifi/WifiStateMachine.java   | 239 +++++++++++++--------
+ 10 files changed, 248 insertions(+), 90 deletions(-)
+ create mode 100644 apdu-stubs/Android.mk
+ create mode 100644 apdu-stubs/src/java/android/net/apdu/ApduService.java
+ create mode 100644 apdu/Android.mk
+ create mode 100644 apdu/apdu.jar
+
+diff --git a/Android.mk b/Android.mk
+index d1e7d90..7689f26 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -252,7 +252,7 @@ LOCAL_INTERMEDIATE_SOURCES := \
+ 			$(framework_res_source_path)/com/android/internal/R.java
+ 
+ LOCAL_NO_STANDARD_LIBRARIES := true
+-LOCAL_JAVA_LIBRARIES := bouncycastle core core-junit ext
++LOCAL_JAVA_LIBRARIES := bouncycastle core core-junit ext apdu-stubs
+ 
+ LOCAL_MODULE := framework
+ LOCAL_MODULE_CLASS := JAVA_LIBRARIES
+diff --git a/apdu-stubs/Android.mk b/apdu-stubs/Android.mk
+new file mode 100644
+index 0000000..babf184
+--- /dev/null
++++ b/apdu-stubs/Android.mk
+@@ -0,0 +1,35 @@
++# Copyright (C) 2011 The Android Open Source Project
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++LOCAL_PATH := $(call my-dir)
++
++include $(CLEAR_VARS)
++
++# LOCAL_AIDL_INCLUDES := $(LOCAL_PATH)/src/java
++# LOCAL_SRC_FILES := \
++#	src/java/com/android/internal/telephony/ISms.aidl \
++#    src/java/com/android/internal/telephony/IIccPhoneBook.aidl \
++#    src/java/com/android/internal/telephony/EventLogTags.logtags \
++
++LOCAL_SRC_FILES += $(call all-java-files-under, src/java)
++
++LOCAL_MODULE_TAGS := optional
++LOCAL_MODULE := apdu-stubs
++
++include $(BUILD_JAVA_LIBRARY)
++
++# Include subdirectory makefiles
++# ============================================================
++include $(call all-makefiles-under,$(LOCAL_PATH))
++
+diff --git a/apdu-stubs/src/java/android/net/apdu/ApduService.java b/apdu-stubs/src/java/android/net/apdu/ApduService.java
+new file mode 100644
+index 0000000..ef01e22
+--- /dev/null
++++ b/apdu-stubs/src/java/android/net/apdu/ApduService.java
+@@ -0,0 +1,12 @@
++package android.net.apdu;
++
++final public class ApduService
++{
++    public ApduService(String paramString)
++    {
++    }
++
++    public void start()
++    {
++    }
++}
+diff --git a/apdu/Android.mk b/apdu/Android.mk
+new file mode 100644
+index 0000000..30eba9c
+--- /dev/null
++++ b/apdu/Android.mk
+@@ -0,0 +1,14 @@
++LOCAL_PATH := $(call my-dir)
++
++# Extracted class for Apdu service
++include $(CLEAR_VARS)
++LOCAL_PREBUILT_JAVA_LIBRARIES := apdu:apdu.jar
++include $(BUILD_MULTI_PREBUILT)
++
++#LOCAL_MODULE_TAGS := optional
++# LOCAL_MODULE := apdu
++# LOCAL_MODULE_CLASS := JAVA_LIBRARIES
++# LOCAL_SRC_FILE := $(LOCAL_MODULE).jar
++# LOCAL_MODULE_SUFFIX := $(COMMON_JAVA_PACKAGE_SUFFIX)
++# include $(BUILD_STATIC_JAVA_LIBRARY)
++
+diff --git a/apdu/apdu.jar b/apdu/apdu.jar
+new file mode 100644
+index 0000000000000000000000000000000000000000..6c818f62c3ccb06ab6b075e6527de6235a69c708
+GIT binary patch
+literal 5343
+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
+C3{SiO
+
+literal 0
+HcmV?d00001
+
+diff --git a/wifi/java/android/net/wifi/WifiConfigStore.java b/wifi/java/android/net/wifi/WifiConfigStore.java
+index f77ece3..1d99225 100644
+--- a/wifi/java/android/net/wifi/WifiConfigStore.java
++++ b/wifi/java/android/net/wifi/WifiConfigStore.java
+@@ -173,6 +173,18 @@ class WifiConfigStore {
+     }
+ 
+     /**
++     * Retrieve a specific network configuration from its id
++     *
++     */
++    WifiConfiguration getConfiguredNetwork(int netId) {
++        if (netId != INVALID_NETWORK_ID) {
++	    return mConfiguredNetworks.get(netId);
++	}
++	return null;
++    }
++
++
++    /**
+      * enable all networks and save config. This will be a no-op if the list
+      * of configured networks indicates all networks as being enabled
+      */
+diff --git a/wifi/java/android/net/wifi/WifiConfiguration.java b/wifi/java/android/net/wifi/WifiConfiguration.java
+index 162862b..e466b5b 100644
+--- a/wifi/java/android/net/wifi/WifiConfiguration.java
++++ b/wifi/java/android/net/wifi/WifiConfiguration.java
+@@ -126,11 +126,13 @@ public class WifiConfiguration implements Parcelable {
+     public EnterpriseField key_id = new EnterpriseField("key_id");
+     /** {@hide} */
+     public EnterpriseField ca_cert = new EnterpriseField("ca_cert");
++    /** {@hide} */
++    public EnterpriseField pcsc = new EnterpriseField("pcsc");
+ 
+     /** {@hide} */
+     public EnterpriseField[] enterpriseFields = {
+             eap, phase2, identity, anonymous_identity, password, client_cert,
+-            engine, engine_id, key_id, ca_cert };
++            engine, engine_id, key_id, ca_cert, pcsc };
+ 
+     /**
+      * Recognized key management schemes.
+diff --git a/wifi/java/android/net/wifi/WifiMonitor.java b/wifi/java/android/net/wifi/WifiMonitor.java
+index 0b0d738..afc4ad8 100644
+--- a/wifi/java/android/net/wifi/WifiMonitor.java
++++ b/wifi/java/android/net/wifi/WifiMonitor.java
+@@ -662,11 +662,15 @@ public class WifiMonitor {
+          */
+         private void handleSupplicantStateChange(String dataString) {
+             WifiSsid wifiSsid = null;
+-            int index = dataString.lastIndexOf("SSID=");
++
++	    Log.w(TAG, "PL: *** handleSupplicantStateChange *** : {" + dataString + "}");
++
++	    /*            int index = dataString.lastIndexOf("SSID=");
+             if (index != -1) {
+                 wifiSsid = WifiSsid.createFromAsciiEncoded(
+                         dataString.substring(index + 5));
+             }
++	    */
+             String[] dataTokens = dataString.split(" ");
+ 
+             String BSSID = null;
+diff --git a/wifi/java/android/net/wifi/WifiNative.java b/wifi/java/android/net/wifi/WifiNative.java
+index 43e3d33..49080ed 100644
+--- a/wifi/java/android/net/wifi/WifiNative.java
++++ b/wifi/java/android/net/wifi/WifiNative.java
+@@ -59,6 +59,7 @@ public class WifiNative {
+ 
+     public native static boolean startSupplicant(boolean p2pSupported);
+ 
++
+     /* Sends a kill signal to supplicant. To be used when we have lost connection
+        or when the supplicant is hung */
+     public native static boolean killSupplicant(boolean p2pSupported);
+@@ -79,11 +80,20 @@ public class WifiNative {
+ 
+     private native String doStringCommand(String iface, String command);
+ 
++    public native void setApduSocketCommand(String iface, String socketName);
++
+     public WifiNative(String iface) {
+         mInterface = iface;
+         mTAG = "WifiNative-" + iface;
+     }
+ 
++    public void setApduSocketCommand(String command) {
++	String ret;
++	Log.d(mTAG, "PL: WifiNative.setApduSocketCommand("+command+")");
++	ret = doStringCommand(mInterface, "SET_APDU_SOCKET "+command);
++	Log.d(mTAG, "PL: >>> ret="+ ret);
++    }
++
+     public boolean connectToSupplicant() {
+         return connectToSupplicant(mInterface);
+     }
+@@ -213,7 +223,9 @@ public class WifiNative {
+      * MASK=<N> see wpa_supplicant/src/common/wpa_ctrl.h for details
+      */
+     public String scanResults() {
+-        return doStringCommand("BSS RANGE=ALL MASK=0x1986");
++        // PL: Sony proprio is using SCAN_RESULTS
++        // return doStringCommand("BSS RANGE=ALL MASK=0x1986");
++	return doStringCommand("SCAN_RESULTS");
+     }
+ 
+     public boolean startDriver() {
+diff --git a/wifi/java/android/net/wifi/WifiStateMachine.java b/wifi/java/android/net/wifi/WifiStateMachine.java
+index dc4d757..882207d 100644
+--- a/wifi/java/android/net/wifi/WifiStateMachine.java
++++ b/wifi/java/android/net/wifi/WifiStateMachine.java
+@@ -52,6 +52,7 @@ import android.net.LinkProperties;
+ import android.net.NetworkInfo;
+ import android.net.NetworkInfo.DetailedState;
+ import android.net.NetworkUtils;
++import android.net.apdu.ApduService;
+ import android.net.wifi.RssiPacketCountInfo;
+ import android.net.wifi.WpsResult.Status;
+ import android.net.wifi.p2p.WifiP2pManager;
+@@ -186,6 +187,11 @@ public class WifiStateMachine extends StateMachine {
+      */
+     private static final int DRIVER_START_TIME_OUT_MSECS = 10000;
+ 
++    /**
++     * EAP SIM service socket
++     */
++    private static final String APDU_SOCKET_NAME = "APDU_COMMAND_SOCKET";
++
+     /* Tracks sequence number on a driver time out */
+     private int mDriverStartToken = 0;
+ 
+@@ -209,6 +215,8 @@ public class WifiStateMachine extends StateMachine {
+     private PendingIntent mScanIntent;
+     private PendingIntent mDriverStopIntent;
+ 
++    private ApduService mApduService = new ApduService(APDU_SOCKET_NAME);
++
+     /* Tracks current frequency mode */
+     private AtomicInteger mFrequencyBand = new AtomicInteger(WifiManager.WIFI_FREQUENCY_BAND_AUTO);
+ 
+@@ -759,7 +767,8 @@ public class WifiStateMachine extends StateMachine {
+     /**
+      * TODO: doc
+      */
+-    public void startScan(boolean forceActive) {
++    public void startScan(boolean forceActive){
++	log("PL:startScan("+forceActive+")");
+         sendMessage(obtainMessage(CMD_START_SCAN, forceActive ?
+                 SCAN_ACTIVE : SCAN_PASSIVE, 0));
+     }
+@@ -1463,107 +1472,140 @@ public class WifiStateMachine extends StateMachine {
+         mContext.sendStickyBroadcastAsUser(intent, UserHandle.ALL);
+     }
+ 
+-    private static final String BSSID_STR = "bssid=";
+-    private static final String FREQ_STR = "freq=";
+-    private static final String LEVEL_STR = "level=";
+-    private static final String TSF_STR = "tsf=";
+-    private static final String FLAGS_STR = "flags=";
+-    private static final String SSID_STR = "ssid=";
+-    private static final String DELIMITER_STR = "====";
+     /**
+-     * Format:
+-     * bssid=68:7f:76:d7:1a:6e
+-     * freq=2412
+-     * level=-44
+-     * tsf=1344626243700342
+-     * flags=[WPA2-PSK-CCMP][WPS][ESS]
+-     * ssid=zfdy
+-     * ====
+-     * bssid=68:5f:74:d7:1a:6f
+-     * freq=5180
+-     * level=-73
+-     * tsf=1344626243700373
+-     * flags=[WPA2-PSK-CCMP][WPS][ESS]
+-     * ssid=zuby
+-     * ====
++     * Parse the scan result line passed to us by wpa_supplicant (helper).
++     * @param line the line to parse
++     * @return the {@link ScanResult} object
+      */
+-    private void setScanResults(String scanResults) {
+-        String bssid = "";
+-        int level = 0;
+-        int freq = 0;
+-        long tsf = 0;
+-        String flags = "";
+-        WifiSsid wifiSsid = null;
+-
+-        if (scanResults == null) {
+-            return;
+-        }
+-
+-        synchronized(mScanResultCache) {
+-            mScanResults = new ArrayList<ScanResult>();
+-            String[] lines = scanResults.split("\n");
+-
+-            for (String line : lines) {
+-                if (line.startsWith(BSSID_STR)) {
+-                    bssid = line.substring(BSSID_STR.length());
+-                } else if (line.startsWith(FREQ_STR)) {
+-                    try {
+-                        freq = Integer.parseInt(line.substring(FREQ_STR.length()));
+-                    } catch (NumberFormatException e) {
+-                        freq = 0;
+-                    }
+-                } else if (line.startsWith(LEVEL_STR)) {
++    private ScanResult parseScanResult(String line) {
++        ScanResult scanResult = null;
++        if (line != null) {
++            /*
++             * Cache implementation (LinkedHashMap) is not synchronized, thus,
++             * must synchronized here!
++             */
++	    log("ScanResLine:"+line);
++            synchronized (mScanResultCache) {
++                String[] result = scanResultPattern.split(line);
++                if (3 <= result.length && result.length <= 5) {
++                    String bssid = result[0];
++                    // bssid | frequency | level | flags | ssid
++                    int frequency;
++                    int level;
+                     try {
+-                        level = Integer.parseInt(line.substring(LEVEL_STR.length()));
++                        frequency = Integer.parseInt(result[1]);
++                        level = Integer.parseInt(result[2]);
+                         /* some implementations avoid negative values by adding 256
+                          * so we need to adjust for that here.
+                          */
+                         if (level > 0) level -= 256;
+-                    } catch(NumberFormatException e) {
+-                        level = 0;
+-                    }
+-                } else if (line.startsWith(TSF_STR)) {
+-                    try {
+-                        tsf = Long.parseLong(line.substring(TSF_STR.length()));
+                     } catch (NumberFormatException e) {
+-                        tsf = 0;
++                        frequency = 0;
++                        level = 0;
+                     }
+-                } else if (line.startsWith(FLAGS_STR)) {
+-                    flags = line.substring(FLAGS_STR.length());
+-                } else if (line.startsWith(SSID_STR)) {
+-                    wifiSsid = WifiSsid.createFromAsciiEncoded(
+-                            line.substring(SSID_STR.length()));
+-                } else if (line.startsWith(DELIMITER_STR)) {
+-                    if (bssid != null) {
+-                        String ssid = (wifiSsid != null) ? wifiSsid.toString() : WifiSsid.NONE;
+-                        String key = bssid + ssid;
+-                        ScanResult scanResult = mScanResultCache.get(key);
+-                        if (scanResult != null) {
+-                            scanResult.level = level;
+-                            scanResult.wifiSsid = wifiSsid;
+-                            // Keep existing API
+-                            scanResult.SSID = (wifiSsid != null) ? wifiSsid.toString() :
+-                                    WifiSsid.NONE;
+-                            scanResult.capabilities = flags;
+-                            scanResult.frequency = freq;
+-                            scanResult.timestamp = tsf;
++
++                    /*
++                     * The formatting of the results returned by
++                     * wpa_supplicant is intended to make the fields
++                     * line up nicely when printed,
++                     * not to make them easy to parse. So we have to
++                     * apply some heuristics to figure out which field
++                     * is the SSID and which field is the flags.
++                     */
++                    String ssid;
++                    String flags;
++                    if (result.length == 4) {
++                        if (result[3].charAt(0) == '[') {
++                            flags = result[3];
++                            ssid = "";
+                         } else {
++                            flags = "";
++                            ssid = result[3];
++                        }
++                    } else if (result.length == 5) {
++                        flags = result[3];
++                        ssid = result[4];
++                    } else {
++                        // Here, we must have 3 fields: no flags and ssid
++                        // set
++                        flags = "";
++                        ssid = "";
++                    }
++
++		    log("parsing: bssid="+bssid+", ssid="+ssid);
++                    // bssid + ssid is the hash key
++                    String key = bssid + ssid;
++                    scanResult = mScanResultCache.get(key);
++                    if (scanResult != null) {
++			scanResult.wifiSsid = WifiSsid.createFromAsciiEncoded(ssid);
++                        scanResult.level = level;
++                        scanResult.SSID = ssid;
++                        scanResult.capabilities = flags;
++                        scanResult.frequency = frequency;
++                    } else {
++                        // Do not add scan results that have no SSID set
++                        if (0 < ssid.trim().length()) {
+                             scanResult =
+                                 new ScanResult(
+-                                        wifiSsid, bssid, flags, level, freq, tsf);
++					       WifiSsid.createFromAsciiEncoded(ssid),
++					       bssid,
++					       flags,
++					       level,
++					       frequency,
++					       0L
++						);
+                             mScanResultCache.put(key, scanResult);
+                         }
+-                        mScanResults.add(scanResult);
+                     }
+-                    bssid = null;
+-                    level = 0;
+-                    freq = 0;
+-                    tsf = 0;
+-                    flags = "";
+-                    wifiSsid = null;
++                } else {
++                    loge("Misformatted scan result text with " +
++                          result.length + " fields: " + line);
+                 }
+             }
+         }
++
++        return scanResult;
++    }
++
++    /**
++     * scanResults input format
++     * 00:bb:cc:dd:cc:ee       2427    166     [WPA-EAP-TKIP][WPA2-EAP-CCMP]   Net1
++     * 00:bb:cc:dd:cc:ff       2412    165     [WPA-EAP-TKIP][WPA2-EAP-CCMP]   Net2
++     */
++    private void setScanResults(String scanResults) {
++        if (scanResults == null) {
++            return;
++        }
++
++        List<ScanResult> scanList = new ArrayList<ScanResult>();
++
++        int lineCount = 0;
++
++        int scanResultsLen = scanResults.length();
++        // Parse the result string, keeping in mind that the last line does
++        // not end with a newline.
++        for (int lineBeg = 0, lineEnd = 0; lineEnd <= scanResultsLen; ++lineEnd) {
++            if (lineEnd == scanResultsLen || scanResults.charAt(lineEnd) == '\n') {
++                ++lineCount;
++
++                if (lineCount == 1) {
++                    lineBeg = lineEnd + 1;
++                    continue;
++                }
++                if (lineEnd > lineBeg) {
++                    String line = scanResults.substring(lineBeg, lineEnd);
++                    ScanResult scanResult = parseScanResult(line);
++                    if (scanResult != null) {
++                        scanList.add(scanResult);
++                    } else {
++                        //TODO: hidden network handling
++                    }
++                }
++                lineBeg = lineEnd + 1;
++            }
++        }
++
++        mScanResults = scanList;
+     }
+ 
+     /*
+@@ -1732,6 +1774,9 @@ public class WifiStateMachine extends StateMachine {
+     private SupplicantState handleSupplicantStateChange(Message message) {
+         StateChangeResult stateChangeResult = (StateChangeResult) message.obj;
+         SupplicantState state = stateChangeResult.state;
++
++	log("PL: **** handleSupplicantStateChange, new state=" + state.toString());
++
+         // Supplicant state change
+         // [31-13] Reserved for future use
+         // [8 - 0] Supplicant state (as defined in SupplicantState.java)
+@@ -1741,12 +1786,27 @@ public class WifiStateMachine extends StateMachine {
+         // Network id is only valid when we start connecting
+         if (SupplicantState.isConnecting(state)) {
+             mWifiInfo.setNetworkId(stateChangeResult.networkId);
++	    // We only have network id, ssid is missing
++	    WifiConfiguration config = mWifiConfigStore.getConfiguredNetwork(stateChangeResult.networkId);
++	    if(config != null) {
++		String ssid = config.SSID;
++		if(ssid != null) {
++		    mWifiInfo.setSSID(WifiSsid.createFromAsciiEncoded(ssid.substring(1, ssid.length() - 1)));
++		}
++	    }
+         } else {
+             mWifiInfo.setNetworkId(WifiConfiguration.INVALID_NETWORK_ID);
+         }
+ 
+-        mWifiInfo.setBSSID(stateChangeResult.BSSID);
+-        mWifiInfo.setSSID(stateChangeResult.wifiSsid);
++        if (state == SupplicantState.ASSOCIATING) {
++            /* BSSID is valid only in ASSOCIATING state */
++            mWifiInfo.setBSSID(stateChangeResult.BSSID);
++        }
++
++	if(stateChangeResult.wifiSsid != null) {
++	    log("PL: **** handleSupplicantStateChange, ssid not null = " + stateChangeResult.wifiSsid.toString());
++	    mWifiInfo.setSSID(stateChangeResult.wifiSsid);
++	}
+ 
+         mSupplicantStateTracker.sendMessage(Message.obtain(message));
+ 
+@@ -2419,6 +2479,13 @@ public class WifiStateMachine extends StateMachine {
+             switch(message.what) {
+                 case WifiMonitor.SUP_CONNECTION_EVENT:
+                     if (DBG) log("Supplicant connection established");
++		    // PL: give socket name to wpa_supplicant and start apdu service
++		    log("PL:mWifiNative.setApduSocketCommand()");
++		    mWifiNative.setApduSocketCommand(APDU_SOCKET_NAME);
++		    // PL: temp comment
++		    log("PL:mApduService.start()");
++		    mApduService.start();
++		    log("PL:wifi enabled");
+                     setWifiState(WIFI_STATE_ENABLED);
+                     mSupplicantRestartCount = 0;
+                     /* Reset the supplicant state to indicate the supplicant
+-- 
+1.8.1.2
+
