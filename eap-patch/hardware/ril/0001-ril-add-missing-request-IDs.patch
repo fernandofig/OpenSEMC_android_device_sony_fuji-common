@@ -1,0 +1,47 @@
+From 6637f65625057834c8e04a8f2d2d376e2ed40860 Mon Sep 17 00:00:00 2001
+From: Philippe Larrieux <philippe.larrieux@gmail.com>
+Date: Mon, 1 Jul 2013 12:10:52 +0200
+Subject: [PATCH] ril: add missing request IDs
+
+Change-Id: I1103b7fffcf89fa68d47dc51aa28b7975e0741b2
+---
+ include/telephony/ril.h | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/include/telephony/ril.h b/include/telephony/ril.h
+index 6b1769b..cf9896a 100644
+--- a/include/telephony/ril.h
++++ b/include/telephony/ril.h
+@@ -3320,6 +3320,29 @@ typedef struct {
+  */
+ #define RIL_REQUEST_VOICE_RADIO_TECH 108
+ 
++#define RIL_REQUEST_IMS_REGISTRATION_STATE 109;
++#define RIL_REQUEST_IMS_SEND_SMS 110
++#define RIL_REQUEST_GET_DATA_CALL_PROFILE 111
++#define RIL_REQUEST_SETUP_QOS 112
++#define RIL_REQUEST_RELEASE_QOS 113
++#define RIL_REQUEST_GET_QOS_STATUS 114
++#define RIL_REQUEST_MODIFY_QOS 115
++#define RIL_REQUEST_SUSPEND_QOS 116
++#define RIL_REQUEST_RESUME_QOS 117
++#define RIL_REQUEST_SET_UICC_SUBSCRIPTION 118
++#define RIL_REQUEST_SET_DATA_SUBSCRIPTION 119
++#define RIL_REQUEST_GET_UICC_SUBSCRIPTION 120
++#define RIL_REQUEST_GET_DATA_SUBSCRIPTION 121
++#define RIL_REQUEST_SET_SUBSCRIPTION_MODE 122
++#define RIL_REQUEST_SET_TRANSMIT_POWER 123
++
++// EAP SIM
++#define RIL_REQUEST_SIM_TRANSMIT_BASIC 124
++#define RIL_REQUEST_SIM_OPEN_CHANNEL 125
++#define RIL_REQUEST_SIM_CLOSE_CHANNEL 126
++#define RIL_REQUEST_SIM_TRANSMIT_CHANNEL 127
++
++
+ 
+ /***********************************************************************/
+ 
+-- 
+1.8.1.2
+

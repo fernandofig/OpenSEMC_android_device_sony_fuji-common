@@ -1,0 +1,375 @@
+From f4c34ea83dfdcf8c5ef92c42164d896b8a5ab964 Mon Sep 17 00:00:00 2001
+From: Philippe Larrieux <philippe.larrieux@gmail.com>
+Date: Mon, 1 Jul 2013 12:03:05 +0200
+Subject: [PATCH] RIL: APDU functions for EAP-SIM support
+
+Change-Id: I11e2f5a10e4676c89399e7c31e284623afc80d45
+
+Conflicts:
+	src/java/com/android/internal/telephony/sip/SipCommandInterface.java
+	src/java/com/android/internal/telephony/test/SimulatedCommands.java
+---
+ .../internal/telephony/CommandException.java       |  9 +++
+ .../internal/telephony/CommandsInterface.java      | 12 ++++
+ .../com/android/internal/telephony/IccCard.java    | 10 ++++
+ .../android/internal/telephony/IccCardProxy.java   | 34 +++++++++++
+ src/java/com/android/internal/telephony/RIL.java   | 67 ++++++++++++++++++++++
+ .../internal/telephony/SonyQualcommRIL.java        |  5 ++
+ .../internal/telephony/UiccCardApplication.java    | 38 ++++++++++++
+ .../telephony/sip/SipCommandInterface.java         | 10 ++++
+ .../internal/telephony/test/SimulatedCommands.java | 13 +++++
+ .../telephony/gsm/UsimDataDownloadCommands.java    | 13 +++++
+ 10 files changed, 211 insertions(+)
+
+diff --git a/src/java/com/android/internal/telephony/CommandException.java b/src/java/com/android/internal/telephony/CommandException.java
+index 94c544e..e4c7e74 100644
+--- a/src/java/com/android/internal/telephony/CommandException.java
++++ b/src/java/com/android/internal/telephony/CommandException.java
+@@ -42,6 +42,9 @@ public class CommandException extends RuntimeException {
+         MODE_NOT_SUPPORTED,
+         FDN_CHECK_FAILURE,
+         ILLEGAL_SIM_OR_ME,
++        MISSING_RESOURCE,
++        NO_SUCH_ELEMENT,
++        INVALID_PARAMETER,
+     }
+ 
+     public CommandException(Error e) {
+@@ -83,6 +86,12 @@ public class CommandException extends RuntimeException {
+                 return new CommandException(Error.FDN_CHECK_FAILURE);
+             case RILConstants.ILLEGAL_SIM_OR_ME:
+                 return new CommandException(Error.ILLEGAL_SIM_OR_ME);
++            case RILConstants.MISSING_RESOURCE:
++                return new CommandException(Error.MISSING_RESOURCE);
++            case RILConstants.NO_SUCH_ELEMENT:
++                return new CommandException(Error.NO_SUCH_ELEMENT);
++            case RILConstants.INVALID_PARAMETER:
++                return new CommandException(Error.INVALID_PARAMETER);
+             default:
+                 Log.e("GSM", "Unrecognized RIL errno " + ril_errno);
+                 return new CommandException(Error.INVALID_RESPONSE);
+diff --git a/src/java/com/android/internal/telephony/CommandsInterface.java b/src/java/com/android/internal/telephony/CommandsInterface.java
+index a88aded..4bb9cb8 100644
+--- a/src/java/com/android/internal/telephony/CommandsInterface.java
++++ b/src/java/com/android/internal/telephony/CommandsInterface.java
+@@ -1142,6 +1142,18 @@ public interface CommandsInterface {
+ 
+     void setNetworkSelectionModeManual(String operatorNumeric, Message response);
+ 
++
++    /**
++     * SmartCard API related exports
++     */
++    void iccExchangeAPDU(int cla, int command, int channel, int p1, int p2,
++            int p3, String data, Message response);
++
++    void iccOpenChannel(String AID, Message response);
++
++    void iccCloseChannel(int channel, Message response);
++
++
+     /**
+      * Queries whether the current network selection mode is automatic
+      * or manual
+diff --git a/src/java/com/android/internal/telephony/IccCard.java b/src/java/com/android/internal/telephony/IccCard.java
+index f1ac581..0085ef1 100644
+--- a/src/java/com/android/internal/telephony/IccCard.java
++++ b/src/java/com/android/internal/telephony/IccCard.java
+@@ -211,4 +211,14 @@ public interface IccCard {
+      * @return true if a ICC card is present
+      */
+     public boolean hasIccCard();
++
++    public void exchangeAPDU(int cla, int command, int channel, int p1, int p2,
++            int p3, String data, Message onComplete);
++
++    public void openLogicalChannel(String AID, Message onComplete);
++
++    public void closeLogicalChannel(int channel, Message onComplete);
++
++    public void exchangeSimIO(int fileID, int command,
++                              int p1, int p2, int p3, String pathID, Message onComplete);
+ }
+diff --git a/src/java/com/android/internal/telephony/IccCardProxy.java b/src/java/com/android/internal/telephony/IccCardProxy.java
+index cdd2fea..cebc1f7 100644
+--- a/src/java/com/android/internal/telephony/IccCardProxy.java
++++ b/src/java/com/android/internal/telephony/IccCardProxy.java
+@@ -693,4 +693,38 @@ public class IccCardProxy extends Handler implements IccCard {
+     private void loge(String msg) {
+         Log.e(LOG_TAG, msg);
+     }
++
++    public void exchangeAPDU(int cla, int command, int channel, int p1, int p2,
++            int p3, String data, Message onComplete) {
++        synchronized (mLock) {
++            if (mUiccApplication != null) {
++                mUiccApplication.exchangeAPDU(cla,command,channel,p1,p2,p3,data,onComplete);
++            }
++	}
++    }
++
++    public void openLogicalChannel(String AID, Message onComplete) {
++        synchronized (mLock) {
++            if (mUiccApplication != null) {
++                mUiccApplication.openLogicalChannel(AID,onComplete);
++            }
++	}
++    }
++
++    public void closeLogicalChannel(int channel, Message onComplete) {
++        synchronized (mLock) {
++            if (mUiccApplication != null) {
++                mUiccApplication.closeLogicalChannel(channel,onComplete);
++            }
++	}
++    }
++
++    public void exchangeSimIO(int fileID, int command,
++                                           int p1, int p2, int p3, String pathID, Message onComplete) {
++        synchronized (mLock) {
++            if (mUiccApplication != null) {
++		mUiccApplication.exchangeSimIO(fileID,command,p1,p2,p3,pathID,onComplete);
++	    }
++	}
++    }
+ }
+diff --git a/src/java/com/android/internal/telephony/RIL.java b/src/java/com/android/internal/telephony/RIL.java
+index 6bc50ef..93e4919 100644
+--- a/src/java/com/android/internal/telephony/RIL.java
++++ b/src/java/com/android/internal/telephony/RIL.java
+@@ -2339,6 +2339,10 @@ public class RIL extends BaseCommands implements CommandsInterface {
+             case RIL_REQUEST_SEND_SMS_EXPECT_MORE: ret =  responseSMS(p); break;
+             case RIL_REQUEST_SETUP_DATA_CALL: ret =  responseSetupDataCall(p); break;
+             case RIL_REQUEST_SIM_IO: ret =  responseICC_IO(p); break;
++            case RIL_REQUEST_SIM_TRANSMIT_BASIC: ret =  responseICC_IO(p); break;
++            case RIL_REQUEST_SIM_OPEN_CHANNEL: ret  = responseInts(p); break;
++            case RIL_REQUEST_SIM_CLOSE_CHANNEL: ret  = responseVoid(p); break;
++            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL: ret = responseICC_IO(p); break;
+             case RIL_REQUEST_SEND_USSD: ret =  responseVoid(p); break;
+             case RIL_REQUEST_CANCEL_USSD: ret =  responseVoid(p); break;
+             case RIL_REQUEST_GET_CLIR: ret =  responseInts(p); break;
+@@ -3661,6 +3665,10 @@ public class RIL extends BaseCommands implements CommandsInterface {
+             case RIL_REQUEST_SEND_SMS_EXPECT_MORE: return "SEND_SMS_EXPECT_MORE";
+             case RIL_REQUEST_SETUP_DATA_CALL: return "SETUP_DATA_CALL";
+             case RIL_REQUEST_SIM_IO: return "SIM_IO";
++            case RIL_REQUEST_SIM_TRANSMIT_BASIC: return "SIM_TRANSMIT_BASIC";
++            case RIL_REQUEST_SIM_OPEN_CHANNEL: return "SIM_OPEN_CHANNEL";
++            case RIL_REQUEST_SIM_CLOSE_CHANNEL: return "SIM_CLOSE_CHANNEL";
++            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL: return "SIM_TRANSMIT_CHANNEL";
+             case RIL_REQUEST_SEND_USSD: return "SEND_USSD";
+             case RIL_REQUEST_CANCEL_USSD: return "CANCEL_USSD";
+             case RIL_REQUEST_GET_CLIR: return "GET_CLIR";
+@@ -4027,4 +4035,63 @@ public class RIL extends BaseCommands implements CommandsInterface {
+         pw.println(" mLastNITZTimeInfo=" + mLastNITZTimeInfo);
+         pw.println(" mTestingEmergencyCall=" + mTestingEmergencyCall.get());
+     }
++
++    public void
++    iccExchangeAPDU(int cla, int command, int channel, int p1, int p2, int p3,
++            String data, Message result) {
++        RILRequest rr;
++        if (channel == 0) {
++            rr = RILRequest.obtain(RIL_REQUEST_SIM_TRANSMIT_BASIC, result);
++        } else {
++            rr = RILRequest.obtain(RIL_REQUEST_SIM_TRANSMIT_CHANNEL, result);
++        }
++
++        rr.mp.writeInt(cla);
++        rr.mp.writeInt(command);
++        rr.mp.writeInt(channel);
++        rr.mp.writeString(null);
++        rr.mp.writeInt(p1);
++        rr.mp.writeInt(p2);
++        rr.mp.writeInt(p3);
++        rr.mp.writeString(data);
++        rr.mp.writeString(null);
++
++        if (RILJ_LOGD) riljLog(rr.serialString() + "> iccExchangeAPDU: " + requestToString(rr.mRequest)
++                + "Channel 0x" + Integer.toHexString(channel) + ": "
++                + " 0x" + Integer.toHexString(cla)
++                + " 0x" + Integer.toHexString(command)
++                + " 0x" + Integer.toHexString(p1)
++                + " 0x" + Integer.toHexString(p2)
++                + " 0x" + Integer.toHexString(p3)
++                );
++
++        send(rr);
++    }
++
++    public void
++    iccOpenChannel(String AID, Message result) {
++        RILRequest rr
++                = RILRequest.obtain(RIL_REQUEST_SIM_OPEN_CHANNEL, result);
++
++        rr.mp.writeString(AID);
++
++        if (RILJ_LOGD) riljLog(rr.serialString() + "> iccOpenChannel: " + requestToString(rr.mRequest)
++                + " " + AID);
++
++        send(rr);
++    }
++
++    public void
++    iccCloseChannel(int channel, Message result) {
++        RILRequest rr
++                = RILRequest.obtain(RIL_REQUEST_SIM_CLOSE_CHANNEL, result);
++
++        rr.mp.writeInt(1);
++        rr.mp.writeInt(channel);
++
++        if (RILJ_LOGD) riljLog(rr.serialString() + "> iccCloseChannel: " + requestToString(rr.mRequest)
++                + " " + channel);
++
++        send(rr);
++    }
+ }
+diff --git a/src/java/com/android/internal/telephony/SonyQualcommRIL.java b/src/java/com/android/internal/telephony/SonyQualcommRIL.java
+index 90bf67f..a6a827f 100644
+--- a/src/java/com/android/internal/telephony/SonyQualcommRIL.java
++++ b/src/java/com/android/internal/telephony/SonyQualcommRIL.java
+@@ -102,6 +102,10 @@ public class SonyQualcommRIL extends QualcommSharedRIL implements CommandsInterf
+             case RIL_REQUEST_SEND_SMS_EXPECT_MORE: ret =  responseSMS(p); break;
+             case RIL_REQUEST_SETUP_DATA_CALL: ret =  responseSetupDataCall(p); break;
+             case RIL_REQUEST_SIM_IO: ret =  responseICC_IO(p); break;
++            case RIL_REQUEST_SIM_TRANSMIT_BASIC: ret =  responseICC_IO(p); break;
++            case RIL_REQUEST_SIM_OPEN_CHANNEL: ret  = responseInts(p); break;
++            case RIL_REQUEST_SIM_CLOSE_CHANNEL: ret  = responseVoid(p); break;
++            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL: ret = responseICC_IO(p); break;
+             case RIL_REQUEST_SEND_USSD: ret =  responseVoid(p); break;
+             case RIL_REQUEST_CANCEL_USSD: ret =  responseVoid(p); break;
+             case RIL_REQUEST_GET_CLIR: ret =  responseInts(p); break;
+@@ -183,6 +187,7 @@ public class SonyQualcommRIL extends QualcommSharedRIL implements CommandsInterf
+             case RIL_REQUEST_VOICE_RADIO_TECH: ret = responseInts(p); break;
+             case 121: ret = responseVoid(p); break; // RIL_REQUEST_SET_TRANSMIT_POWER
+ 
++
+             default:
+                 throw new RuntimeException("Unrecognized solicited response: " + rr.mRequest);
+             //break;
+diff --git a/src/java/com/android/internal/telephony/UiccCardApplication.java b/src/java/com/android/internal/telephony/UiccCardApplication.java
+index 2718af6..551c06f 100644
+--- a/src/java/com/android/internal/telephony/UiccCardApplication.java
++++ b/src/java/com/android/internal/telephony/UiccCardApplication.java
+@@ -46,6 +46,10 @@ public class UiccCardApplication {
+     private static final int EVENT_CHANGE_FACILITY_FDN_DONE = 2;
+     private static final int EVENT_QUERY_FACILITY_LOCK_DONE = 3;
+     private static final int EVENT_CHANGE_FACILITY_LOCK_DONE = 4;
++    private static final int EVENT_EXCHANGE_APDU_DONE = 5;
++    private static final int EVENT_OPEN_CHANNEL_DONE = 6;
++    private static final int EVENT_CLOSE_CHANNEL_DONE = 7;
++    private static final int EVENT_SIM_IO_DONE = 8;
+ 
+     private final Object  mLock = new Object();
+     private UiccCard      mUiccCard; //parent
+@@ -335,6 +339,18 @@ public class UiccCardApplication {
+                     ar = (AsyncResult)msg.obj;
+                     onChangeFacilityLock(ar);
+                     break;
++                case EVENT_EXCHANGE_APDU_DONE:
++                case EVENT_OPEN_CHANNEL_DONE:
++                case EVENT_CLOSE_CHANNEL_DONE:
++	        case EVENT_SIM_IO_DONE:
++                    ar = (AsyncResult)msg.obj;
++                    if(ar.exception != null) {
++                       if (DBG) log("Error in SIM access with exception" + ar.exception);
++                    }
++                    AsyncResult.forMessage(((Message)ar.userObj),
++                            ar.result, ar.exception);
++                    ((Message)ar.userObj).sendToTarget();
++                    break;
+                 default:
+                     loge("Unknown Event " + msg.what);
+             }
+@@ -696,4 +712,26 @@ public class UiccCardApplication {
+     private void loge(String msg) {
+         Log.e(LOG_TAG, msg);
+     }
++
++    public void exchangeAPDU(int cla, int command, int channel, int p1, int p2,
++            int p3, String data, Message onComplete) {
++        mCi.iccExchangeAPDU(cla, command, channel, p1, p2, p3, data,
++                mHandler.obtainMessage(EVENT_EXCHANGE_APDU_DONE, onComplete));
++    }
++
++    public void openLogicalChannel(String AID, Message onComplete) {
++        mCi.iccOpenChannel(AID,
++                mHandler.obtainMessage(EVENT_OPEN_CHANNEL_DONE, onComplete));
++    }
++
++    public void closeLogicalChannel(int channel, Message onComplete) {
++        mCi.iccCloseChannel(channel,
++                mHandler.obtainMessage(EVENT_CLOSE_CHANNEL_DONE, onComplete));
++    }
++
++    public void exchangeSimIO(int fileID, int command,
++                              int p1, int p2, int p3, String pathID, Message onComplete) {
++	mCi.iccIO(command,fileID,pathID,p1,p2,p3,null,null,
++		  mHandler.obtainMessage(EVENT_SIM_IO_DONE, onComplete));
++    }
+ }
+diff --git a/src/java/com/android/internal/telephony/sip/SipCommandInterface.java b/src/java/com/android/internal/telephony/sip/SipCommandInterface.java
+index af12985..3c1c105 100644
+--- a/src/java/com/android/internal/telephony/sip/SipCommandInterface.java
++++ b/src/java/com/android/internal/telephony/sip/SipCommandInterface.java
+@@ -423,4 +423,14 @@ class SipCommandInterface extends BaseCommands implements CommandsInterface {
+     }
+ 
+     public boolean needsOldRilFeature(String feature) { return false; }
++
++    public void iccExchangeAPDU(int cla, int command, int channel, int p1,
++            int p2, int p3, String data, Message response) {
++    }
++
++    public void iccOpenChannel(String AID, Message response) {
++    }
++
++    public void iccCloseChannel(int channel, Message response) {
++    }
+ }
+diff --git a/src/java/com/android/internal/telephony/test/SimulatedCommands.java b/src/java/com/android/internal/telephony/test/SimulatedCommands.java
+index 4903616..9b8e89a 100644
+--- a/src/java/com/android/internal/telephony/test/SimulatedCommands.java
++++ b/src/java/com/android/internal/telephony/test/SimulatedCommands.java
+@@ -1524,4 +1524,17 @@ public final class SimulatedCommands extends BaseCommands
+     }
+ 
+     public boolean needsOldRilFeature(String feature) { return false; }
++
++    public void iccExchangeAPDU (int cla, int command, int channel, int p1,
++                         int p2, int p3, String data, Message response) {
++        unimplemented(response);
++    }
++
++    public void iccOpenChannel(String AID, Message response) {
++        unimplemented(response);
++    }
++
++    public void iccCloseChannel(int channel, Message response) {
++        unimplemented(response);
++    }
+ }
+diff --git a/tests/telephonytests/src/com/android/internal/telephony/gsm/UsimDataDownloadCommands.java b/tests/telephonytests/src/com/android/internal/telephony/gsm/UsimDataDownloadCommands.java
+index ea6836d..d180712 100644
+--- a/tests/telephonytests/src/com/android/internal/telephony/gsm/UsimDataDownloadCommands.java
++++ b/tests/telephonytests/src/com/android/internal/telephony/gsm/UsimDataDownloadCommands.java
+@@ -621,4 +621,17 @@ class UsimDataDownloadCommands extends BaseCommands {
+     public void iccIOForApp(int command, int fileid, String path, int p1, int p2, int p3,
+             String data, String pin2, String aid, Message response) {
+     }
++
++    @Override
++    public void iccExchangeAPDU (int cla, int command, int channel, int p1,
++                         int p2, int p3, String data, Message response) {
++    }
++
++    @Override
++    public void iccOpenChannel(String AID, Message response) {
++    }
++
++    @Override
++    public void iccCloseChannel(int channel, Message response) {
++    }
+ }
+-- 
+1.8.1.2
+

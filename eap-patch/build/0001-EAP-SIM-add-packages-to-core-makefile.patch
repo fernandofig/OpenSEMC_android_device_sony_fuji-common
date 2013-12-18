@@ -1,0 +1,28 @@
+From e6168efbfb670dc6303c98830c7cb99fb74e82df Mon Sep 17 00:00:00 2001
+From: Philippe Larrieux <philippe.larrieux@gmail.com>
+Date: Fri, 5 Jul 2013 10:00:24 +0200
+Subject: [PATCH] EAP-SIM: add packages to core makefile
+
+Change-Id: Id2e6ed9de674b238797dab9a235d6b87f6d83448
+---
+ target/product/core.mk | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/target/product/core.mk b/target/product/core.mk
+index f6bb48c..87144d0 100644
+--- a/target/product/core.mk
++++ b/target/product/core.mk
+@@ -19,6 +19,10 @@ PRODUCT_DEVICE := generic
+ PRODUCT_NAME := core
+ 
+ PRODUCT_PACKAGES += \
++    SmartcardService \
++    org.simalliance.openmobileapi \
++    org.simalliance.openmobileapi.xml \
++    libassd \
+     ApplicationsProvider \
+     BackupRestoreConfirmation \
+     BasicDreams \
+-- 
+1.8.1.2
+

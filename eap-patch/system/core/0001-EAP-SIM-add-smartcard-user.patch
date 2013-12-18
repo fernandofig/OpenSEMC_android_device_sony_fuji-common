@@ -1,0 +1,36 @@
+From 525dd4d390c41b664e43fc36756163bf82e26d80 Mon Sep 17 00:00:00 2001
+From: Philippe Larrieux <philippe.larrieux@gmail.com>
+Date: Mon, 1 Jul 2013 15:49:46 +0200
+Subject: [PATCH] EAP-SIM: add smartcard user
+
+Change-Id: I24f1497c3bbed4216a0e8c06bfc6bcee76ccceeb
+
+Conflicts:
+	include/private/android_filesystem_config.h
+---
+ include/private/android_filesystem_config.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/include/private/android_filesystem_config.h b/include/private/android_filesystem_config.h
+index 16efe58..2808088 100644
+--- a/include/private/android_filesystem_config.h
++++ b/include/private/android_filesystem_config.h
+@@ -62,6 +62,7 @@
+ #define AID_DRMRPC        1026  /* group for drm rpc */
+ #define AID_NFC           1027  /* nfc subsystem */
+ #define AID_SDCARD_R      1028  /* external storage read access */
++#define AID_SMARTCARD     1029  /* smart card subsystem */
+ #define AID_AUDIT         1031  /* audit daemon */
+ 
+ #define AID_THEMEMAN      1300  /* theme manager */
+@@ -150,6 +151,7 @@ static const struct android_id_info android_ids[] = {
+     { "media_rw",  AID_MEDIA_RW, },
+     { "vpn",       AID_VPN, },
+     { "keystore",  AID_KEYSTORE, },
++    { "smartcard", AID_SMARTCARD, },
+     { "usb",       AID_USB, },
+     { "mtp",       AID_MTP, },
+     { "gps",       AID_GPS, },
+-- 
+1.8.1.2
+
