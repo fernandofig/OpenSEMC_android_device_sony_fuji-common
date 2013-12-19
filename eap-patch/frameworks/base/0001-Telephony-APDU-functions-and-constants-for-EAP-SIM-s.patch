@@ -1,6 +1,6 @@
-From 32a317849ebd9e046403c7e055c464bbb3aad17b Mon Sep 17 00:00:00 2001
-From: Philippe Larrieux <philippe.larrieux@gmail.com>
-Date: Mon, 1 Jul 2013 12:16:24 +0200
+From 79fc46fbba582f90d06a87e3919efa45c88cdd82 Mon Sep 17 00:00:00 2001
+From: fernandofig <fernando.fig@gmail.com>
+Date: Thu, 19 Dec 2013 11:08:01 -0200
 Subject: [PATCH] Telephony: APDU functions and constants for EAP-SIM support
 
 Change-Id: Id3fc48503915fcd5c57f1fafdb6a5b3a0c9a2b49
@@ -8,15 +8,15 @@ Change-Id: Id3fc48503915fcd5c57f1fafdb6a5b3a0c9a2b49
 Conflicts:
 	telephony/java/com/android/internal/telephony/ITelephony.aidl
 ---
- .../com/android/internal/telephony/ITelephony.aidl | 37 +++++++++++++++++++++-
- .../android/internal/telephony/RILConstants.java   | 28 ++++++++++++++++
- 2 files changed, 64 insertions(+), 1 deletion(-)
+ .../com/android/internal/telephony/ITelephony.aidl | 36 +++++++++++++++++++++-
+ .../android/internal/telephony/RILConstants.java   | 28 +++++++++++++++++
+ 2 files changed, 63 insertions(+), 1 deletion(-)
 
 diff --git a/telephony/java/com/android/internal/telephony/ITelephony.aidl b/telephony/java/com/android/internal/telephony/ITelephony.aidl
-index 9d1cc1d..f71cdf5 100644
+index 9d1cc1d..bcc8b0a 100644
 --- a/telephony/java/com/android/internal/telephony/ITelephony.aidl
 +++ b/telephony/java/com/android/internal/telephony/ITelephony.aidl
-@@ -292,5 +292,40 @@ interface ITelephony {
+@@ -292,5 +292,39 @@ interface ITelephony {
      List<CellInfo> getAllCellInfo();
  
      int getLteOnGsmMode();
@@ -54,8 +54,7 @@ index 9d1cc1d..f71cdf5 100644
 +    /**
 +     * Returns the response APDU for a command APDU sent through SIM_IO
 +     */
-+    byte[] transmitIccSimIO(int fileID, int command,
-+                                      int p1, int p2, int p3, String filePath);}
++    byte[] transmitIccSimIO(int fileID, int command, int p1, int p2, int p3, String filePath);
 +
 +}
 diff --git a/telephony/java/com/android/internal/telephony/RILConstants.java b/telephony/java/com/android/internal/telephony/RILConstants.java
